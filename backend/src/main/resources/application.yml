@@ -1,0 +1,35 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: TeamPulse
+  profiles:
+    active: dev
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    default-property-inclusion: non_null
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.example.teampulse.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+team-pulse:
+  jwt:
+    secret: teampulse-jwt-secret-key-please-change-in-production-0123456789
+    expire-minutes: 720
+    header: Authorization
+    prefix: "Bearer "
+  cors:
+    allowed-origins: http://localhost:5173
+
+logging:
+  level:
+    root: info
+    com.example.teampulse: debug
