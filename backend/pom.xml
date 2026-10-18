@@ -18,7 +18,7 @@
     <description>TeamPulse - 面向课程小组项目的进度风险预警与贡献分析系统</description>
 
     <properties>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <mybatis-spring-boot.version>3.0.3</mybatis-spring-boot.version>
         <jjwt.version>0.12.5</jjwt.version>
