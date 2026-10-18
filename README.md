@@ -2,7 +2,7 @@
 
 面向课程小组项目的**进度风险预警与贡献分析**系统。
 
-当前处于地基阶段：仓库、数据库脚本、后端公共层（统一返回体 / 错误码 / 全局异常）与前端骨架已就绪，业务接口与页面尚未开始，详见「当前进度 / 待办」。
+当前处于地基阶段：仓库、数据库脚本、后端公共层（统一返回体 / 错误码 / 全局异常）、持久层骨架（MyBatis-Plus + 11 表实体）、安全骨架（白名单 + 401/403 统一返回体）与前端骨架已就绪，业务接口与页面尚未开始，详见「当前进度 / 待办」。
 
 ## 技术栈
 
@@ -14,7 +14,7 @@
 - 请求与图表：Axios 1.7.2 / ECharts 5.5.0
 - 构建：Vite 5.2.11 / @vitejs/plugin-vue 5.0.4
 
-前端 UI 组件库尚未选型（`package.json` 目前不含 element-plus），分页实现方式同样待定；两者确定后回写本节与「接口约定」。
+分页实现已确定为 MyBatis-Plus（`IPage` + `PageAdapter` 转换为 `PageResult`，见「接口约定」）。前端 UI 组件库尚未选型（`package.json` 目前不含 element-plus），确定后回写本节。
 
 ## 环境要求
 
@@ -65,7 +65,7 @@ mvn spring-boot:run            # 开发期直接运行
 
 - 首次运行前：在仓库根执行 `cp backend/src/main/resources/application-dev.example.yml backend/src/main/resources/application-dev.yml`，把其中的 `CHANGE_ME` 换成本机数据库口令（该文件不入库）。
 - 成功标志：日志出现 `Tomcat started on port 8080 (http) with context path '/api'`；接口基址 `http://localhost:8080/api`。
-- 当前还没有 `SecurityConfig`，Spring Security 默认拦截所有请求，直接访问出现 401 或 Basic 登录框属正常现象。
+- `SecurityConfig` 已就绪：`/auth/login`、`/auth/register`、`/doc.html`、`/v3/api-docs/**` 等在白名单内，其余请求需认证。**此时尚无登录接口与 JWT 过滤器**，所以访问受保护路径一律返回 401（统一返回体），访问 `/api/auth/login` 返回 404 属正常——404 说明请求已穿过安全链。
 
 ### 3. 前端启动
 
@@ -147,27 +147,31 @@ dev         ← 每日集成分支，全员合并目标
 - 入参 `pageNum`（默认 1）、`pageSize`（默认 10，上限 100）；出参 `{ pageNum, pageSize, total, list }`，空页 `list` 为 `[]`；字段名冻结，不用 `current` / `size` / `records`。**分页实现：MyBatis-Plus IPage + PageAdapter 转换，出参保持 PageResult 冻结字段**。
 - 时间格式 `yyyy-MM-dd HH:mm:ss`，时区 `Asia/Shanghai`。
 - 任务状态 `NOT_STARTED` / `IN_PROGRESS` / `REVIEWING` / `DONE` / `PAUSED` / `CANCELLED`；角色 `STUDENT` / `ASSISTANT` / `ADMIN`。
+- **未认证 401 / 无权限 403 也走统一返回体**：这两类由 Security 过滤器链直接输出（`RestAuthenticationEntryPoint` / `RestAccessDeniedHandler`），不经过 `GlobalExceptionHandler`，响应体同样是 `{ code, message, data, timestamp }`，`data` 为 `null`。
 
 ## 当前进度 / 待办
 
-当前可运行范围：后端能启动、前端能打开、数据库脚本能建出完整结构；**业务接口与页面尚未开始**。下面按《前置任务》9.x 的客观检查项自评，「未达成」只表示尚未开始。5 分钟验收路径：按「快速开始」跑完 —— 后端日志出现 Tomcat 8080、前端能打开 5173、`SHOW FULL TABLES` 为 11 表 + 1 视图，即地基通过。
+当前可运行范围：后端能启动、前端能打开、数据库脚本能建出完整结构；**业务接口与页面尚未开始**。下面按《前置任务》9.x 的客观检查项自评，「未达成」只表示尚未开始。5 分钟验收路径：按「快速开始」跑完 —— 后端日志出现 Tomcat 8080、前端能打开 5173、`SHOW FULL TABLES` 为 11 表 + 1 视图、浏览器或 Apifox 访问 `http://localhost:8080/api/auth/me` 返回 401 统一返回体，即地基通过。
 
-**已完成**：仓库与分支（`main` / `dev` / 4 条 `feature-*`）；数据库脚本（11 表 + 1 视图 + 24 个非主键索引）；后端公共层（`Result`、`ErrorCode` 12 个常量、`PageResult`、`BusinessException`、`GlobalExceptionHandler`）；后端测试（`GlobalExceptionHandlerTest` 9 个用例，standalone MockMvc 不连库）；前端骨架（Vue / Router / Pinia / Axios 已挂载，`request.js` 自动注入 `Bearer` token）。
+**已完成**：仓库与分支（`main` / `dev` / 4 条 `feature-*`）；数据库脚本（11 表 + 1 视图 + 24 个非主键索引）；后端公共层（`Result`、`ErrorCode` 12 个常量、`PageResult`、`BusinessException`、`GlobalExceptionHandler`）；持久层（MyBatis-Plus 3.5.7：分页插件、逻辑删除、`createTime` / `updateTime` 自动填充，11 表 Entity / Mapper / Service 骨架）；安全骨架（`SecurityConfig` 白名单 + `STATELESS` + 401/403 统一返回体）；后端测试（`GlobalExceptionHandlerTest` 9 个用例，standalone MockMvc 不连库）；前端骨架（Vue / Router / Pinia / Axios 已挂载，`request.js` 自动注入 `Bearer` token）。
 
-**进行中**：后端业务层（`controller` / `service` / `mapper` / `entity` / `dto` / `vo` 仅 `.gitkeep`）；前端页面（`routes` 为空数组，`views` / `components` 无页面）；数据库实例（脚本就绪，是否已执行请按「快速开始」校验）；工程化（未安装 `node_modules`，无 lock 文件）。
+自测基线（Apifox「开发环境」，前置 URL `http://localhost:8080/api`，请求路径不再带 `/api`）：`GET /auth/login` → **404** `code=404`；`GET /auth/me`（无 Token）→ **401** `code=401`；`OPTIONS /auth/me` → **404**（非 401）。
 
-**待开始**：安全链路（`SecurityConfig`、JWT 工具、跨域配置，依赖与配置键已预留）；《前置任务》7.2 的 24 个接口；任务看板、总览图表、按角色渲染的菜单；集成测试与部署。
+**进行中**：后端业务层（`entity` / `mapper` / `service` 骨架已就绪，`controller` / `dto` / `vo` 仍为 `.gitkeep`）；前端页面（`routes` 为空数组，`views` / `components` 无页面）；数据库实例（脚本就绪，是否已执行请按「快速开始」校验）；工程化（未安装 `node_modules`，无 lock 文件）。
+
+**待开始**：认证链路（`JwtUtil`、`JwtAuthenticationFilter` 并以 `addFilterBefore` 接入 `SecurityConfig`、注册 / 登录 / `/auth/me` 接口、`UserDetailsService`）；跨域（`CorsConfigurationSource`，当前 `.cors(...)` 仅为占位）；《前置任务》7.2 的 24 个接口；任务看板、总览图表、按角色渲染的菜单；集成测试与部署。
 
 | 检查项 | 判定 | 依据 |
 | --- | --- | --- |
-| `Result` 被至少一个接口使用 | 未达成 | `controller/` 仅 `.gitkeep` |
-| `SecurityConfig` 白名单 `/auth/login` | 未达成 | `config/` 仅 `.gitkeep` |
+| `Result` 被至少一个接口使用 | 未达成 | `controller/` 仍仅 `.gitkeep`；过滤器链的 401/403 已复用 `Result` |
+| `SecurityConfig` 白名单 `/auth/login` | 达成 | `/api/auth/login` 返回 404 而非 401（Apifox 实测） |
+| 受保护路径未认证返回 401 | 达成 | `/api/auth/me` 无 Token → 401 + `code=401`（Apifox 实测） |
 | Knife4j 四分组 / element-plus | 未达成 | `pom.xml` 无 knife4j；`package.json` 无该依赖 |
 | 登录页可访问 | 未达成 | `routes = []` |
 | 11 表 / 1 视图 / 种子数据 | 脚本就绪，库实例待验证 | 执行「快速开始」后 `SHOW FULL TABLES` |
 | README 七项齐备 | 本文提交后达成 | 本文件 |
 
-近期三条动作：**A** 补 `SecurityConfig` + JWT + `/auth/login`、`/auth/me`（验收：无 token 401、带 token 200）；**B / C** 各落 1 个列表接口（验收：分页与错误码符合「接口约定」）；**D / 全员** 安装依赖并提交 lock 文件，用 `v_project_progress` 做总览查询原型。
+近期三条动作：**A** 补 JWT 工具与过滤器 + `/auth/login`、`/auth/me`（`SecurityConfig` 已完成，验收：带 token 200、无 token 401、错密码 1002）；**B / C** 各落 1 个列表接口（验收：分页与错误码符合「接口约定」）；**D / 全员** 安装依赖并提交 lock 文件，用 `v_project_progress` 做总览查询原型。
 
 ## 项目结构
 
@@ -178,7 +182,7 @@ TeamPulse/
 │       ├── main/java/com/example/teampulse/
 │       │   ├── TeamPulseApplication.java
 │       │   ├── common/          Result / ErrorCode / PageResult / PageAdapter（已实现）
-│       │   ├── config/          MybatisPlusConfig（已实现）
+│       │   ├── config/          MybatisPlusConfig / SecurityConfig / RestAuthenticationEntryPoint / RestAccessDeniedHandler（已实现）
 │       │   ├── controller/      接口层（按模块分文件）
 │       │   ├── dto/             入参对象
 │       │   ├── entity/          数据库实体（MyBatis-Plus 注解）
@@ -206,6 +210,6 @@ TeamPulse/
 
 1. **8080 被占用**：`netstat -ano | findstr :8080` 找到 PID 后 `taskkill /PID <pid> /F`；macOS / Linux 用 `lsof -i :8080`。
 2. **后端报数据库连接失败**：确认 MySQL 已启动、`teampulse` 库已创建、`application-dev.yml` 中的连接信息与本机一致。
-3. **访问后端出现 401 / Basic 登录框**：`SecurityConfig` 尚未实现，Spring Security 默认拦截，属预期现象。
+3. **访问后端一直返回 401**：`SecurityConfig` 已启用认证，未带 `Authorization: Bearer <token>` 时受保护路径一律 401，属预期；JWT 过滤器与登录接口尚未实现（5.7 / 5.8），当前无法通过认证。若访问 `/api/auth/login` 也返回 401，多半是白名单被改成了 `/api/auth/login`——白名单路径不含 context-path。
 4. **`admin` 登录失败**：`seed.sql` 中密码是占位符，需按「快速开始 · 管理员账号」本地生成后更新。
 5. **前端空白或 404**：确认通过 http://localhost:5173 访问而不是直接打开 `index.html`，空白页是路由为空所致。
