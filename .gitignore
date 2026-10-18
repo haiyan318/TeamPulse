@@ -30,3 +30,6 @@ pnpm-debug.log*
 ### OS ###
 .DS_Store
 Thumbs.db
+
+### 本地数据源配置（含口令，禁止入库）###
+**/application-dev.yml
