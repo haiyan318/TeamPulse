@@ -7,7 +7,7 @@
 ## 技术栈
 
 - 后端：Spring Boot 3.2.5 / Java 21 / Maven 3.9.x
-- 持久层：MyBatis-Spring-Boot 3.0.3 / MySQL Connector-J 8.3.0
+- 持久层：MyBatis-Plus 3.5.7 / MySQL Connector-J 8.3.0
 - 安全：Spring Security 6.2.4 / jjwt 0.12.5
 - 数据库：MySQL 8.4.x LTS（utf8mb4 / utf8mb4_0900_ai_ci）
 - 前端：Vue 3.4.27 / Vue Router 4.3.2 / Pinia 2.1.7
@@ -144,7 +144,7 @@ dev         ← 每日集成分支，全员合并目标
 
 分页与其他约定：
 
-- 入参 `pageNum`（默认 1）、`pageSize`（默认 10，上限 100）；出参 `{ pageNum, pageSize, total, list }`，空页 `list` 为 `[]`；字段名冻结，不用 `current` / `size` / `records`。**具体实现（PageHelper / MyBatis-Plus / 手写）尚未敲定**，此处只约束出入参。
+- 入参 `pageNum`（默认 1）、`pageSize`（默认 10，上限 100）；出参 `{ pageNum, pageSize, total, list }`，空页 `list` 为 `[]`；字段名冻结，不用 `current` / `size` / `records`。**分页实现：MyBatis-Plus IPage + PageAdapter 转换，出参保持 PageResult 冻结字段**。
 - 时间格式 `yyyy-MM-dd HH:mm:ss`，时区 `Asia/Shanghai`。
 - 任务状态 `NOT_STARTED` / `IN_PROGRESS` / `REVIEWING` / `DONE` / `PAUSED` / `CANCELLED`；角色 `STUDENT` / `ASSISTANT` / `ADMIN`。
 
@@ -177,9 +177,17 @@ TeamPulse/
 │   └── src/
 │       ├── main/java/com/example/teampulse/
 │       │   ├── TeamPulseApplication.java
-│       │   ├── common/          Result / ErrorCode / PageResult（已实现）
+│       │   ├── common/          Result / ErrorCode / PageResult / PageAdapter（已实现）
+│       │   ├── config/          MybatisPlusConfig（已实现）
+│       │   ├── controller/      接口层（按模块分文件）
+│       │   ├── dto/             入参对象
+│       │   ├── entity/          数据库实体（MyBatis-Plus 注解）
+│       │   ├── mapper/          Mapper 接口（继承 BaseMapper<T>）
+│       │   ├── service/         Service 接口（继承 IService<T>）
+│       │   │   └── impl/        Service 实现（继承 ServiceImpl<Mapper, T>）
 │       │   ├── exception/       BusinessException / GlobalExceptionHandler（已实现）
-│       │   └── config/ controller/ dto/ entity/ mapper/ service/ util/ vo/（仅 .gitkeep）
+│       │   ├── util/            JwtUtil 等工具
+│       │   └── vo/              出参对象
 │       ├── main/resources/      application*.yml、db/{schema,seed}.sql、mapper/
 │       └── test/java/           TeamPulseApplicationTests、exception/GlobalExceptionHandlerTest
 ├── frontend/                    Vue 3 + Vite（src 下 api/router/stores 为骨架，views/components 为空）
