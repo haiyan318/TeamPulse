@@ -33,3 +33,6 @@ Thumbs.db
 
 ### 本地数据源配置（含口令，禁止入库）###
 **/application-dev.yml
+
+### 本地自测文件（含可用 dev token，禁止入库）###
+docs/test/apifox-self-test.openapi.json
