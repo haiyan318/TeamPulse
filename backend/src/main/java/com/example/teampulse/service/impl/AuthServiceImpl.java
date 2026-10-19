@@ -115,6 +115,15 @@ public class AuthServiceImpl implements AuthService {
         return toUserVO(user, roleCodes);
     }
 
+    @Override
+    public void logout() {
+        // 无状态（SessionCreationPolicy.STATELESS）+ 无 token 黑名单：
+        // 服务端没有可撤销的会话状态，"退出"实际由客户端丢弃 token 完成。
+        // 这里刻意保持 no-op：不查库、不改状态、不开事务，保证接口在 DB 抖动时也能
+        // 快速返回 200，让前端 finally 里必定清本地 token。
+        // 将来若引入 Redis 黑名单，在此把当前 token 的 jti 写入并设置剩余 TTL 即可。
+    }
+
     private List<String> roleCodesOf(Long userId) {
         List<Long> roleIds = userRoleMapper.selectList(new LambdaQueryWrapper<SysUserRole>()
                         .eq(SysUserRole::getUserId, userId))

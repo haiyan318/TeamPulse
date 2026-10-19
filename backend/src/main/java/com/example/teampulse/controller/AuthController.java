@@ -19,7 +19,8 @@ import org.springframework.web.bind.annotation.RestController;
  * 认证接口（《前置任务》5.8 / P2-08）。
  *
  * <p>路径为相对 context-path：外部访问 {@code /api/auth/login}。
- * {@code /auth/login}、{@code /auth/register} 已在安全白名单；{@code /auth/me} 需认证。</p>
+ * {@code /auth/login}、{@code /auth/register} 已在安全白名单；
+ * {@code /auth/me}、{@code /auth/logout} 需认证。</p>
  */
 @Tag(name = "认证与用户")
 @RestController
@@ -49,5 +50,20 @@ public class AuthController {
     @GetMapping("/me")
     public Result<UserVO> me() {
         return Result.success(authService.me());
+    }
+
+    /**
+     * 退出登录。
+     *
+     * <p><b>语义说明</b>：本系统是 STATELESS JWT，服务端既没有会话也没有 token 黑名单，
+     * 因此这里不会让已签发的 token 失效——退出后旧 token 仍可用到
+     * {@code team-pulse.jwt.expire-minutes} 到期为止。前端退出以清除本地 token 为准，
+     * 该端点用于契约完整与后续接入黑名单/审计。需要认证：匿名调用返回 401。</p>
+     */
+    @Operation(summary = "退出登录（无状态 JWT：服务端不撤销 token，仅语义占位，需 Bearer token）")
+    @PostMapping("/logout")
+    public Result<Void> logout() {
+        authService.logout();
+        return Result.success();
     }
 }
