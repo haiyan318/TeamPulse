@@ -12,17 +12,18 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
- * 安全配置：无状态 JWT 过滤器链骨架（《前置任务》5.6 / P2-06）。
+ * 安全配置：无状态 JWT 过滤器链（《前置任务》5.6 / P2-06 白名单 + 5.7 / P2-07 过滤器接入）。
  *
  * <p>白名单路径是 <b>相对 context-path</b> 的路径：外部访问 {@code /api/auth/login}，
  * 这里必须写 {@code /auth/login}。写成 {@code /api/...} 将永远匹配不上，
  * 症状是登录接口仍被拦截成 401。</p>
  *
- * <p>本阶段只做安全骨架，不注册 JWT 过滤器（属 5.7）。
- * 5.7 完成后在 {@link #securityFilterChain(HttpSecurity)} 的 {@code http.build()} 之前
- * 补一行 {@code http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)}。</p>
+ * <p>JWT 过滤器已通过
+ * {@code http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)}
+ * 接入，先于用户名密码过滤器执行。</p>
  */
 @Configuration
 @EnableWebSecurity
@@ -48,11 +49,14 @@ public class SecurityConfig {
 
     private final RestAuthenticationEntryPoint authenticationEntryPoint;
     private final RestAccessDeniedHandler accessDeniedHandler;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     public SecurityConfig(RestAuthenticationEntryPoint authenticationEntryPoint,
-                          RestAccessDeniedHandler accessDeniedHandler) {
+                          RestAccessDeniedHandler accessDeniedHandler,
+                          JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.authenticationEntryPoint = authenticationEntryPoint;
         this.accessDeniedHandler = accessDeniedHandler;
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
     @Bean
@@ -74,8 +78,8 @@ public class SecurityConfig {
                         .requestMatchers(WHITE_LIST).permitAll()
                         .anyRequest().authenticated());
 
-        // 5.7 回填点（本阶段不写）：
-        // http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        // 5.7 已接入：JWT 过滤器先于用户名密码过滤器执行
+        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
