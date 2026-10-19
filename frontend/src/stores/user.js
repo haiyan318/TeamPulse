@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { login as loginApi, getMe } from '@/api/auth'
+import { login as loginApi, getMe, logout as logoutApi } from '@/api/auth'
 
 /** localStorage 中 token 的键名，与 request.js 的请求拦截器共用同一常量值 */
 export const TOKEN_KEY = 'token'
@@ -51,12 +51,31 @@ export const useUserStore = defineStore('user', {
       return meRequest
     },
 
-    /** 退出：后端无 /auth/logout，纯前端清理（拦截器的 401 分支也复用它） */
+    /**
+     * 清理本地登录态。
+     * 必须是同步方法：request.js 的 401 分支直接调用它，那一刻不能等网络、
+     * 也不能返回 Promise，否则守卫会读到残留 token 而在 /login 与首页之间来回弹。
+     */
     logout() {
       this.token = ''
       this.userInfo = null
       this.roles = []
       localStorage.removeItem(TOKEN_KEY)
+    },
+
+    /**
+     * 主动退出：先通知后端（契约占位，不会吊销 token），再无条件清本地。
+     * 失败（后端未启动 / token 已过期）一律吞掉——本地清干净才是唯一必要条件。
+     * 注意：不能在请求前先清 token，否则这次请求头里就没有 Bearer 了。
+     */
+    async logoutRemote() {
+      try {
+        await logoutApi()
+      } catch {
+        // token 已过期时拦截器已顺手 logout() 过一次，这里重复清理无副作用
+      } finally {
+        this.logout()
+      }
     }
   }
 })

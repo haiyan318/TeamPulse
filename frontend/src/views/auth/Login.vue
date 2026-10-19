@@ -46,14 +46,18 @@
         </el-button>
       </el-form>
 
-      <p class="login__hint">账号由管理员分配，如需开通请联系任课教师或助教。</p>
+      <p class="login__hint">
+        还没有账号？
+        <el-link type="primary" underline="never" @click="router.push('/register')">立即注册</el-link>
+      </p>
     </el-card>
   </div>
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 
 const route = useRoute()
@@ -64,7 +68,20 @@ const formRef = ref()
 const loading = ref(false)
 const errorText = ref('')
 
-const form = reactive({ username: '', password: '' })
+// 注册页用 router.replace 跳到本页：目标组件不同，Login 会重新挂载，
+// 因此 setup 阶段读一次 query 即可，不需要 watch。
+const presetUsername = typeof route.query.username === 'string' ? route.query.username : ''
+const form = reactive({ username: presetUsername, password: '' })
+
+onMounted(() => {
+  if (!presetUsername) return
+  ElMessage.success('注册成功，请登录')
+
+  // 清掉 username，避免刷新页面重复弹「注册成功」；redirect 原样保留
+  const query = { ...route.query }
+  delete query.username
+  router.replace({ path: '/login', query }).catch(() => {})
+})
 
 // 只校验非空：后端 LoginRequest 也只有 @NotBlank，加长度规则会把历史短密码挡在门外
 const rules = {

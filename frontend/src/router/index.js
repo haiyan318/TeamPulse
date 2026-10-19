@@ -15,6 +15,12 @@ const routes = [
     meta: { title: '登录', public: true }
   },
   {
+    path: '/register',
+    name: 'Register',
+    component: () => import('@/views/auth/Register.vue'),
+    meta: { title: '注册', public: true }
+  },
+  {
     // 布局页只负责外壳，页面全部作为子路由挂在下面
     path: '/',
     name: 'Root',
@@ -42,8 +48,8 @@ router.beforeEach(async (to) => {
     return to.meta?.public ? true : { path: '/login', query: { redirect: to.fullPath } }
   }
 
-  // 2. 已登录：不再回登录页
-  if (to.path === '/login') return { path: '/' }
+  // 2. 已登录：不再回登录 / 注册页（否则还能打开注册页写库）
+  if (['/login', '/register'].includes(to.path)) return { path: '/' }
 
   // 3. 刷新后 store 是空的（只持久化了 token），补一次 /auth/me 恢复用户与角色
   if (!userStore.userInfo) {

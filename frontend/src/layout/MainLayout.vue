@@ -77,9 +77,10 @@ const visibleMenus = computed(() =>
 const currentTitle = computed(() => (route.path === '/dashboard' ? '' : route.meta?.title || ''))
 const avatarText = computed(() => userStore.displayName.slice(0, 1))
 
-function handleCommand(command) {
+async function handleCommand(command) {
   if (command !== 'logout') return
-  userStore.logout()
+  // 先通知后端（契约占位，失败也不阻断），再清本地并回到登录页
+  await userStore.logoutRemote()
   router.replace('/login')
 }
 </script>
