@@ -1,0 +1,338 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "TeamPulse 认证验证",
+    "description": "5.7–5.9 认证闭环 + CORS 的 Apifox 手动验证请求集。导入后请求自动带上前置 URL（servers[0].url）。",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080/api",
+      "description": "本地开发环境（context-path /api）"
+    }
+  ],
+  "tags": [
+    {
+      "name": "01-认证与用户",
+      "description": "注册 / 登录 / 当前用户 / CORS 预检"
+    }
+  ],
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "tags": ["01-认证与用户"],
+        "summary": "注册（自动绑定 STUDENT 角色）",
+        "operationId": "register",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              },
+              "example": {
+                "username": "testuser",
+                "password": "123456",
+                "realName": "测试用户"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "注册成功",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 200,
+                  "message": "success",
+                  "data": null,
+                  "timestamp": 1760000000000
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数校验失败（如密码 <6 位）",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 400,
+                  "message": "password: 密码至少 6 位",
+                  "data": null,
+                  "timestamp": 1760000000000
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "用户名已存在",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 1001,
+                  "message": "用户名已存在",
+                  "data": null,
+                  "timestamp": 1760000000000
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": ["01-认证与用户"],
+        "summary": "登录（返回 token）",
+        "operationId": "login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              },
+              "example": {
+                "username": "testuser",
+                "password": "123456"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "登录成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginVO"
+                },
+                "example": {
+                  "code": 200,
+                  "message": "success",
+                  "data": {
+                    "token": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzYwMDAwMDAwfQ.xxxxx",
+                    "userInfo": {
+                      "id": 1,
+                      "username": "testuser",
+                      "realName": "测试用户",
+                      "email": null,
+                      "roles": ["STUDENT"]
+                    }
+                  },
+                  "timestamp": 1760000000000
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "用户名或密码错误（code=1002，防枚举统一文案）",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 1002,
+                  "message": "用户名或密码错误",
+                  "data": null,
+                  "timestamp": 1760000000000
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": ["01-认证与用户"],
+        "summary": "当前用户信息（需 Bearer token）",
+        "operationId": "me",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": false,
+            "description": "跨域验证时携带，验证响应头 Access-Control-Allow-Origin",
+            "schema": {
+              "type": "string",
+              "example": "http://localhost:5173"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "当前用户",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 200,
+                  "message": "success",
+                  "data": {
+                    "id": 1,
+                    "username": "testuser",
+                    "realName": "测试用户",
+                    "email": null,
+                    "roles": ["STUDENT"]
+                  },
+                  "timestamp": 1760000000000
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未认证（无 / 非法 / 过期 token）",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 401,
+                  "message": "未登录",
+                  "data": null,
+                  "timestamp": 1760000000000
+                }
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "tags": ["01-认证与用户"],
+        "summary": "CORS 预检（模拟浏览器 OPTIONS）",
+        "operationId": "corsPreflight",
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "http://localhost:5173"
+            }
+          },
+          {
+            "name": "Access-Control-Request-Method",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "GET"
+            }
+          },
+          {
+            "name": "Access-Control-Request-Headers",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "预检通过。判定看响应 Header 标签：Access-Control-Allow-Origin / Access-Control-Allow-Methods / Access-Control-Allow-Headers"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "登录后把 data.token 填入（或 Auth 标签选 Bearer Token，值填 {{token}}）"
+      }
+    },
+    "schemas": {
+      "RegisterRequest": {
+        "type": "object",
+        "required": ["username", "password"],
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "用户名",
+            "example": "testuser"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 6,
+            "description": "密码（至少 6 位）",
+            "example": "123456"
+          },
+          "realName": {
+            "type": "string",
+            "description": "真实姓名（可选）",
+            "example": "测试用户"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "邮箱（可选）",
+            "example": "test@example.com"
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["username", "password"],
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "testuser"
+          },
+          "password": {
+            "type": "string",
+            "example": "123456"
+          }
+        }
+      },
+      "UserVO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "username": {
+            "type": "string",
+            "example": "testuser"
+          },
+          "realName": {
+            "type": "string",
+            "example": "测试用户"
+          },
+          "email": {
+            "type": "string",
+            "example": "test@example.com"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": ["STUDENT"]
+          }
+        }
+      },
+      "LoginVO": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzYwMDAwMDAwfQ.xxxxx"
+          },
+          "userInfo": {
+            "$ref": "#/components/schemas/UserVO"
+          }
+        }
+      }
+    }
+  }
+}
