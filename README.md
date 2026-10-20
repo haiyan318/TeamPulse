@@ -2,7 +2,7 @@
 
 面向课程小组项目的**进度风险预警与贡献分析**系统。
 
-当前处于地基阶段：仓库、数据库脚本、后端公共层（统一返回体 / 错误码 / 全局异常）、持久层骨架（MyBatis-Plus + 11 表实体）、安全与认证（白名单 + JWT 认证过滤器 + 注册/登录/me 最小闭环 + 401/403 统一返回体）、跨域配置与前端地基（Element Plus、全局样式、请求封装、路由守卫、注册/登录闭环与 4 个业务页骨架）已就绪，B / C / D 的业务接口与业务页面实质内容尚未开始，详见「[当前进度 / 待办](#当前进度--待办)」。
+当前处于地基阶段：仓库、数据库脚本、后端公共层（统一返回体 / 错误码 / 全局异常）、持久层骨架（MyBatis-Plus + 11 表实体）、安全与认证（白名单 + JWT 认证过滤器 + 注册/登录/me 最小闭环 + 401/403 统一返回体）、跨域配置、M1 契约冻结（OpenAPI 32 条）与前端地基（Element Plus、全局样式、请求封装、路由守卫、注册/登录/退出闭环与 4 个业务页骨架）已就绪，B / C / D 的业务接口与业务页面实质内容尚未开始，详见「[当前进度 / 待办](#当前进度--待办)」。
 
 ## 技术栈
 
@@ -13,7 +13,7 @@
 - 前端：Vue 3.4.27+ / Vue Router 4.3.2+ / Pinia 2.1.7+（`package.json` 声明的是下限，锁文件实际安装 Vue 3.5.44 / Vue Router 4.6.4 / Pinia 2.3.1）
 - UI 组件库：Element Plus 2.14.7 / @element-plus/icons-vue 2.3.2（全量注册 + `zhCn` 语言包）
 - 请求与图表：Axios 1.7.2+ / ECharts 5.5.0+（实际安装 1.20.0 / 5.6.0）
-- 构建：Vite 5.2.11 / @vitejs/plugin-vue 5.0.4
+- 构建：Vite 5.2.11+ / @vitejs/plugin-vue 5.0.4+（锁文件实际安装 Vite 5.4.21 / plugin-vue 5.2.4）
 
 分页实现已确定为 MyBatis-Plus（`IPage` + `PageAdapter` 转换为 `PageResult`，见「接口约定」）。前端 UI 组件库已定为 Element Plus 2.14.7：`main.js` 中全量注册组件与 293 个图标、注入中文语言包；设计变量与全局重置集中在 `frontend/src/styles/index.css`，换主题只改该文件的 `--tp-*` 变量（以及与之桥接的 `--el-*`）。
 
@@ -195,7 +195,7 @@ dev         ← 每日集成分支，全员合并目标
 
 ## 接口约定
 
-本节只冻结**协议**，接口清单见《前置任务》7.2 与后续 Apifox 项目。
+本节只冻结**协议**；接口清单以 `docs/contract/teampulse-m1.openapi.json`（契约 v1.0）为准，Apifox 项目按 `docs/contract/APIFOX-建项目指南.md` 搭建，条目与《前置任务》7.2 能力表一一对应。
 
 - 基址 `http://localhost:8080/api`，前端统一通过 `/api` 代理访问。
 - 认证：请求头 `Authorization: Bearer <token>`，有效期由 `team-pulse.jwt.expire-minutes` 控制（当前 720 分钟）。
@@ -237,7 +237,7 @@ dev         ← 每日集成分支，全员合并目标
 
 当前可运行范围：后端能启动、前端能打开并完成注册/登录、数据库脚本能建出完整结构；**B / C / D 的业务接口与业务页面内容尚未开始**（业务页目前只有骨架草稿）。本机已用 5 个测试账号（`admin` / `ta01` / `stu01`~`stu03`）跑通「注册 → 登录 → 按角色菜单 → 退出」闭环。下面按《前置任务》9.x 的客观检查项自评，「未达成」只表示尚未开始。5 分钟验收路径：按「快速开始」跑完 —— 后端日志出现 Tomcat 8080、前端能打开 5173、`SHOW FULL TABLES` 为 11 表 + 1 视图、浏览器或 Apifox 访问 `http://localhost:8080/api/auth/me` 返回 401 统一返回体，即地基通过。
 
-**已完成**：仓库与分支（`main` / `dev` / 4 条 `feature-*`）；数据库脚本（11 表 + 1 视图 + 24 个非主键索引）；后端公共层（`Result`、`ErrorCode` 12 个常量、`PageResult`、`BusinessException`、`GlobalExceptionHandler`）；持久层（MyBatis-Plus 3.5.7：分页插件、逻辑删除、`createTime` / `updateTime` 自动填充，11 表 Entity / Mapper / Service 骨架）；安全与认证（`SecurityConfig` 白名单 + `STATELESS` + 401/403 统一返回体；`JwtUtil` + `JwtAuthenticationFilter` + `UserDetailsServiceImpl` + `AuthController` 注册/登录/me 最小闭环）；跨域（`CorsConfig` 按 `team-pulse.cors.allowed-origins` 放行 5173）；接口文档（Knife4j 4.5.0 + springdoc，`Knife4jConfig` 四分组：认证与用户 / 课程项目小组 / 任务与看板 / 总览统计，访问 `http://localhost:8080/api/doc.html`）；后端测试（`GlobalExceptionHandlerTest` 9 用例 + `JwtUtilTest` 3 用例，standalone MockMvc 不连库）；前端骨架（Vue / Router / Pinia / Axios 已挂载，`request.js` 自动注入 `Bearer` token）；前端地基（Element Plus 2.14.7 全量注册 + 293 个图标 + `zhCn` 语言包，`src/styles/index.css` 提供设计变量、重置与 EP 变量桥接；`request.js` 统一解包 `Result.data`、401 清 token 并跳登录；`router` 全局守卫校验 token / 角色并保留 `redirect`；`MainLayout` 侧边栏按角色渲染、含面包屑与用户下拉；登录页 + `stores/user` 支持刷新保持登录态；注册页（`/register`，默认 STUDENT，成功后回登录页预填用户名）；退出登录接通 `POST /auth/logout`；`dashboard` / `course` / `group` / `task` 四页骨架草稿）。
+**已完成**：仓库与分支（`main` / `dev` / 4 条 `feature-*`）；数据库脚本（11 表 + 1 视图 + 24 个非主键索引）；后端公共层（`Result`、`ErrorCode` 12 个常量、`PageResult`、`BusinessException`、`GlobalExceptionHandler`）；持久层（MyBatis-Plus 3.5.7：分页插件、逻辑删除、`createTime` / `updateTime` 自动填充，11 表 Entity / Mapper / Service 骨架）；安全与认证（`SecurityConfig` 白名单 + `STATELESS` + 401/403 统一返回体；`JwtUtil` + `JwtAuthenticationFilter` + `UserDetailsServiceImpl` + `AuthController` 注册/登录/me/logout 最小闭环）；跨域（`CorsConfig` 按 `team-pulse.cors.allowed-origins` 放行 5173）；接口文档（Knife4j 4.5.0 + springdoc，`Knife4jConfig` 四分组：认证与用户 / 课程项目小组 / 任务与看板 / 总览统计，访问 `http://localhost:8080/api/doc.html`）；M1 契约冻结（`docs/contract/teampulse-m1.openapi.json`，OpenAPI 3.0.3：21 个 path / 32 条接口 / 6 个 tag；`APIFOX-建项目指南.md` 含双环境、Mock、登录后自动写 token 与冻结纪要模板）；后端测试（`GlobalExceptionHandlerTest` 9 用例 + `JwtUtilTest` 3 用例，standalone MockMvc 不连库）；前端骨架（Vue / Router / Pinia / Axios 已挂载，`request.js` 自动注入 `Bearer` token）；前端地基（Element Plus 2.14.7 全量注册 + 293 个图标 + `zhCn` 语言包，`src/styles/index.css` 提供设计变量、重置与 EP 变量桥接；`request.js` 统一解包 `Result.data`、401 清 token 并跳登录；`router` 全局守卫校验 token / 角色并保留 `redirect`；`MainLayout` 侧边栏按角色渲染、含面包屑与用户下拉；登录页 + `stores/user` 支持刷新保持登录态；注册页（`/register`，默认 STUDENT，成功后回登录页预填用户名）；退出登录接通 `POST /auth/logout`；`dashboard` / `course` / `group` / `task` 四页骨架草稿）。
 
 自测基线（Apifox「开发环境」，前置 URL `http://localhost:8080/api`，请求路径不再带 `/api`）：`POST /auth/register` → **200**；`POST /auth/login` → **200** 返回 `data.token`；`GET /auth/me`（带 Token）→ **200**；`GET /auth/me`（无 Token）→ **401** `code=401`；`POST /auth/logout`（带 Token）→ **200**、无 Token → **401**（注意：无状态 JWT 不吊销旧 token，仍有效至 `expire-minutes` 到期）；`OPTIONS /auth/me`（带 `Origin: http://localhost:5173`）→ **200** 且含 `Access-Control-Allow-Origin`。
 
@@ -245,16 +245,17 @@ dev         ← 每日集成分支，全员合并目标
 
 **进行中**：后端业务层（`entity` / `mapper` / `service` 骨架已就绪，除 `/auth/*` 外的业务接口尚未开始）；前端业务页（四页均为**草稿骨架**，只有「页头 / 查询区 / 表格 / 分页」结构与 `TODO` 接线点，数据、交互与版面待 B / C / D 补完）；集成测试与部署。
 
-**待开始**：《前置任务》7.2 的 24 个业务接口（B 课程/项目/小组、C 任务看板、D 总览）；任务看板拖拽、总览图表、草稿页的数据接入与版面定稿；集成测试与部署。
+**待开始**：《前置任务》7.2 的 24 行能力表——按 method+path 展开为 32 条接口（认证 4 / 课程 4 / 项目 5 / 小组 7 / 任务 9 / 总览 3，见 `docs/contract/teampulse-m1.openapi.json`），其中认证 4 条已实现，其余 28 条待 B / C / D 落代码；任务看板拖拽、总览图表、草稿页的数据接入与版面定稿；集成测试与部署。
 
 | 检查项 | 判定 | 依据 |
 | --- | --- | --- |
-| `Result` 被至少一个接口使用 | 达成 | `AuthController` 三个接口均返回 `Result` |
+| `Result` 被至少一个接口使用 | 达成 | `AuthController` 四个接口（注册/登录/me/logout）均返回 `Result` |
 | `SecurityConfig` 白名单 `/auth/login` | 达成 | `/api/auth/login` 不带 token 可达（非 401） |
 | 受保护路径未认证返回 401 | 达成 | `/api/auth/me` 无 Token → 401 + `code=401` |
 | JWT 过滤器 + 注册/登录/me 闭环 | 达成 | 登录返回 token，带 token 访问 `/auth/me` → 200 |
 | CORS 放行 5173 | 达成 | `OPTIONS /auth/me` 带 Origin 返回 `Access-Control-Allow-Origin` |
 | Knife4j 四分组 | 达成 | `/api/doc.html` 可访问，4 个分组（认证与用户 / 课程项目小组 / 任务与看板 / 总览统计） |
+| 契约冻结 v1.0 | 达成 | `docs/contract/teampulse-m1.openapi.json` 32 条接口 / 6 个 tag，`APIFOX-建项目指南.md` 可照做 |
 | element-plus | 达成 | `package.json` 含 `element-plus ^2.14.7`，`main.js` 全量注册 + `zhCn` 语言包 |
 | 登录页可访问 | 达成 | `/login` 可渲染；错误密码显示红字「用户名或密码错误」且不跳转；登录成功进入 `/dashboard` |
 | 注册可用 | 达成 | `/register` 可自助注册（默认 STUDENT），成功后回 `/login?username=xxx` 并预填；重名返回 409 / `code=1001` |
@@ -277,7 +278,7 @@ dev         ← 每日集成分支，全员合并目标
 
 草稿只定结构与接线点（每页顶部有「骨架草稿 · 由 X 负责完善」标记，正文有 `// TODO(X)` 注释），**配色、间距、响应式与交互细节由各负责人自行定稿**；表格列的 `prop` 目前按 `schema.sql` 字段名占位，接接口时以 7.2 的 VO 为准校正。改造完成后请同步更新本表状态。
 
-近期动作：**A** 已交付认证闭环与前端地基（JWT + 注册/登录/me + CORS + Element Plus + 路由守卫 + 登录页），下一步组织契约冻结与联调；**B / C / D** 按 7.2 实现各自接口，并把 `course` / `group` / `task` / `dashboard` 四页草稿替换为真实页面（验收：分页与错误码符合「接口约定」）；**全员** 用注册账号（勿用 `admin` 占位密码）联调，`v_project_progress` 先做总览查询原型。
+近期动作：**A** 已交付认证闭环、前端地基与 M1 契约冻结（JWT + 注册/登录/me/logout + CORS + Element Plus + 路由守卫 + 登录页 + OpenAPI 32 条），下一步组织 Apifox 项目搭建与联调；**B / C / D** 按 7.2 实现各自接口，并把 `course` / `group` / `task` / `dashboard` 四页草稿替换为真实页面（验收：分页与错误码符合「接口约定」）；**全员** 用注册账号（勿用 `admin` 占位密码）联调，`v_project_progress` 先做总览查询原型。
 
 ## 项目结构
 
@@ -302,7 +303,7 @@ TeamPulse/
 │       ├── main/resources/      application*.yml、db/{schema,seed}.sql、mapper/
 │       └── test/java/           TeamPulseApplicationTests、exception/GlobalExceptionHandlerTest、util/JwtUtilTest
 ├── frontend/                    Vue 3 + Vite（`api` 六个模块 / `stores/user` / `router` 守卫与 `menu` / `layout/MainLayout`；`views` 为登录、注册与四页草稿骨架，`components` 待成员补充）
-├── docs/                        设计文档、ER 图、数据库脚本、文档生成脚本
+├── docs/                        设计文档、ER 图、数据库脚本、文档生成脚本、contract/（M1 契约与 Apifox 指南）、test/（自测留档）
 └── README.md
 ```
 
@@ -312,7 +313,8 @@ TeamPulse/
 - `docs/schema.sql`、`docs/seed.sql`：与 `backend/src/main/resources/db/` 下同名文件内容一致，修改时需同步。
 - `docs/draw_er_diagram.py` 为 ER 图生成脚本，不参与构建；`docs/ddl_v0.3.sql`、`docs/patch_versions.py` 为本地追溯文件，未纳入版本库。
 - 接口文档（Knife4j）：后端启动后访问 `http://localhost:8080/api/doc.html`（端口以 `application-dev.yml` 实际配置为准）；Apifox 可从 `http://localhost:8080/api/v3/api-docs` 导入 OpenAPI JSON。
-- `docs/test/后端自测记录.md`：P2-11 自测留档模板（M2 验收证据），跑完 Apifox 自测后填写。
+- `docs/contract/teampulse-m1.openapi.json`：M1 契约冻结版（OpenAPI 3.0.3，21 个 path 展开 32 条接口、6 个 tag）；`docs/contract/APIFOX-建项目指南.md` 为按它搭 Apifox 项目的操作指南（本地 / Mock 双环境、登录后写 token、冻结纪要模板）。
+- `docs/test/后端自测记录.md`：P2-11 自测留档（M2 验收证据），已填写 5 条基线实测结果并附 9 张截图。
 - `docs/test/apifox-self-test.openapi.json`：**零配置** Apifox 自测文件（内置 dev token，导入即用）；含可用 token，已加入 `.gitignore`，请勿提交。
 - 本 README 位于 git 仓库根 `TeamPulse/`；工作区上级目录 `SoftwareEngineering/` 不在仓库内。
 
