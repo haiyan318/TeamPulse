@@ -1,0 +1,780 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "TeamPulse 第一阶段接口契约（M1）",
+    "version": "1.0.0",
+    "description": "TeamPulse 课程小组项目进度风险预警与贡献分析系统 —— 第一阶段（M1）接口契约。口径：能力表 24 行，按 method+path 展开为 32 条接口；统一返回体 {code,message,data,timestamp}；分页入参 pageNum/pageSize，出参 pageNum/pageSize/total/list；认证头 Authorization: Bearer <token>；时间格式 yyyy-MM-dd HH:mm:ss（Asia/Shanghai）；错误码号段 A 1001-1099 / B 1101-1199 / C 1201-1299 / D 1301-1399。各接口 description 标注负责人与 M1 标记。"
+  },
+  "servers": [
+    { "url": "http://localhost:8080/api", "description": "本地开发环境" }
+  ],
+  "tags": [
+    { "name": "认证", "description": "负责人 A；含注册、登录、退出、当前用户" },
+    { "name": "课程", "description": "负责人 B；课程 CRUD" },
+    { "name": "项目", "description": "负责人 B；项目 CRUD" },
+    { "name": "小组", "description": "负责人 B；小组 CRUD、成员增删、组长设置" },
+    { "name": "任务", "description": "负责人 C；任务 CRUD、看板、分配、状态流转、前置任务" },
+    { "name": "总览", "description": "负责人 D；项目进度、成员负载、本周截止" }
+  ],
+  "security": [{ "bearerAuth": [] }],
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "tags": ["认证"],
+        "summary": "[M1] 注册",
+        "description": "负责人：A；M1 必须：是。默认绑定 STUDENT 角色。",
+        "operationId": "authRegister",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RegisterRequest" },
+              "example": { "username": "student01", "password": "Passw0rd!", "realName": "张三", "studentNo": "20230001" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "注册成功",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Result" },
+                "example": { "code": 200, "message": "success", "data": { "id": 3, "username": "student01", "realName": "张三", "roles": ["STUDENT"] }, "timestamp": "2026-10-20 09:30:00" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": ["认证"],
+        "summary": "[M1] 登录",
+        "description": "负责人：A；M1 必须：是。成功返回 token。",
+        "operationId": "authLogin",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LoginRequest" },
+              "example": { "username": "student01", "password": "Passw0rd!" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "登录成功",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Result" },
+                "example": { "code": 200, "message": "success", "data": { "token": "eyJhbGciOiJIUzI1NiJ9.mock.token", "user": { "id": 3, "username": "student01", "realName": "张三", "roles": ["STUDENT"] } }, "timestamp": "2026-10-20 09:30:00" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": ["认证"],
+        "summary": "[M1] 退出登录",
+        "description": "负责人：A；M1 必须：是。无状态 JWT，服务端仅返回成功，客户端负责清除 token。",
+        "operationId": "authLogout",
+        "responses": {
+          "200": {
+            "description": "退出成功",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Result" },
+                "example": { "code": 200, "message": "success", "data": null, "timestamp": "2026-10-20 09:30:00" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": ["认证"],
+        "summary": "[M1] 当前用户",
+        "description": "负责人：A；M1 必须：是。需携带 Bearer token。",
+        "operationId": "authMe",
+        "responses": {
+          "200": {
+            "description": "当前用户信息",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Result" },
+                "example": { "code": 200, "message": "success", "data": { "id": 1, "username": "admin", "realName": "系统管理员", "roles": ["ADMIN"] }, "timestamp": "2026-10-20 09:30:00" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/courses": {
+      "get": {
+        "tags": ["课程"],
+        "summary": "[M1] 课程列表（分页）",
+        "description": "负责人：B；M1 必须：是。教师仅见自己负责的课程。",
+        "operationId": "listCourses",
+        "parameters": [
+          { "$ref": "#/components/parameters/PageNum" },
+          { "$ref": "#/components/parameters/PageSize" },
+          { "name": "keyword", "in": "query", "schema": { "type": "string" }, "description": "课程名称/编码模糊搜索" },
+          { "name": "semester", "in": "query", "schema": { "type": "string" }, "example": "2026-2027-1" }
+        ],
+        "responses": {
+          "200": {
+            "description": "分页结果",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Result" },
+                "example": { "code": 200, "message": "success", "data": { "pageNum": 1, "pageSize": 10, "total": 1, "list": [{ "id": 1, "courseName": "软件工程", "courseCode": "SE2026", "semester": "2026-2027-1", "teacherId": 2, "description": "软件工程课程", "status": 1 }] }, "timestamp": "2026-10-20 09:30:00" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["课程"],
+        "summary": "[M1] 新建课程",
+        "description": "负责人：B；M1 必须：是。仅 ASSISTANT/ADMIN。",
+        "operationId": "createCourse",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CourseVO" },
+              "example": { "courseName": "软件工程", "courseCode": "SE2026", "semester": "2026-2027-1", "description": "软件工程课程", "status": 1 }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "创建成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Result" }, "example": { "code": 200, "message": "success", "data": { "id": 3 }, "timestamp": "2026-10-20 09:30:00" } } } }
+        }
+      }
+    },
+    "/courses/{id}": {
+      "put": {
+        "tags": ["课程"],
+        "summary": "[M1] 修改课程",
+        "description": "负责人：B；M1 必须：是。",
+        "operationId": "updateCourse",
+        "parameters": [{ "$ref": "#/components/parameters/PathId" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CourseVO" },
+              "example": { "courseName": "软件工程（2026 秋）", "courseCode": "SE2026", "semester": "2026-2027-1", "description": "软件工程课程", "status": 1 }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "修改成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Result" }, "example": { "code": 200, "message": "success", "data": null, "timestamp": "2026-10-20 09:30:00" } } } }
+        }
+      },
+      "delete": {
+        "tags": ["课程"],
+        "summary": "[M1] 删除课程",
+        "description": "负责人：B；M1 必须：是。存在关联项目时返回 1102。",
+        "operationId": "deleteCourse",
+        "parameters": [{ "$ref": "#/components/parameters/PathId" }],
+        "responses": {
+          "200": { "description": "删除成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Result" }, "example": { "code": 200, "message": "success", "data": null, "timestamp": "2026-10-20 09:30:00" } } } }
+        }
+      }
+    },
+    "/projects": {
+      "get": {
+        "tags": ["项目"],
+        "summary": "[M1] 项目列表（分页）",
+        "description": "负责人：B；M1 必须：是。project.status 暂定 4 值；CLOSED 为 v0.4 待定项。",
+        "operationId": "listProjects",
+        "parameters": [
+          { "$ref": "#/components/parameters/PageNum" },
+          { "$ref": "#/components/parameters/PageSize" },
+          { "name": "courseId", "in": "query", "schema": { "type": "integer", "format": "int64" } },
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["NOT_STARTED", "IN_PROGRESS", "REVIEWING", "DONE"] } },
+          { "name": "keyword", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "分页结果",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Result" },
+                "example": { "code": 200, "message": "success", "data": { "pageNum": 1, "pageSize": 10, "total": 1, "list": [{ "id": 1, "projectName": "课程项目管理系统", "courseId": 1, "description": "构建课程小组项目协作平台", "startDate": "2026-09-01", "endDate": "2026-12-31", "status": "IN_PROGRESS" }] }, "timestamp": "2026-10-20 09:30:00" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["项目"],
+        "summary": "[M1] 新建项目",
+        "description": "负责人：B；M1 必须：是。",
+        "operationId": "createProject",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ProjectVO" },
+              "example": { "projectName": "课程项目管理系统", "courseId": 1, "description": "构建课程小组项目协作平台", "startDate": "2026-09-01", "endDate": "2026-12-31", "status": "NOT_STARTED" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "创建成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Result" }, "example": { "code": 200, "message": "success", "data": { "id": 3 }, "timestamp": "2026-10-20 09:30:00" } } } }
+        }
+      }
+    },
+    "/projects/{id}": {
+      "get": {
+        "tags": ["项目"],
+        "summary": "[M1] 项目详情",
+        "description": "负责人：B；M1 必须：是。",
+        "operationId": "getProject",
+        "parameters": [{ "$ref": "#/components/parameters/PathId" }],
+        "responses": {
+          "200": {
+            "description": "项目详情",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Result" },
+                "example": { "code": 200, "message": "success", "data": { "id": 1, "projectName": "课程项目管理系统", "courseId": 1, "description": "构建课程小组项目协作平台", "startDate": "2026-09-01", "endDate": "2026-12-31", "status": "IN_PROGRESS" }, "timestamp": "2026-10-20 09:30:00" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["项目"],
+        "summary": "[M1] 修改项目",
+        "description": "负责人：B；M1 必须：是。",
+        "operationId": "updateProject",
+        "parameters": [{ "$ref": "#/components/parameters/PathId" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ProjectVO" },
+              "example": { "projectName": "课程项目管理系统（二期）", "courseId": 1, "description": "构建课程小组项目协作平台", "startDate": "2026-09-01", "endDate": "2027-01-15", "status": "IN_PROGRESS" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "修改成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Result" }, "example": { "code": 200, "message": "success", "data": null, "timestamp": "2026-10-20 09:30:00" } } } }
+        }
+      },
+      "delete": {
+        "tags": ["项目"],
+        "summary": "[M1] 删除项目",
+        "description": "负责人：B；M1 必须：是。",
+        "operationId": "deleteProject",
+        "parameters": [{ "$ref": "#/components/parameters/PathId" }],
+        "responses": {
+          "200": { "description": "删除成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Result" }, "example": { "code": 200, "message": "success", "data": null, "timestamp": "2026-10-20 09:30:00" } } } }
+        }
+      }
+    },
+    "/groups": {
+      "get": {
+        "tags": ["小组"],
+        "summary": "[M1] 小组列表（分页）",
+        "description": "负责人：B；M1 必须：是。",
+        "operationId": "listGroups",
+        "parameters": [
+          { "$ref": "#/components/parameters/PageNum" },
+          { "$ref": "#/components/parameters/PageSize" },
+          { "name": "projectId", "in": "query", "schema": { "type": "integer", "format": "int64" } },
+          { "name": "keyword", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "分页结果",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Result" },
+                "example": { "code": 200, "message": "success", "data": { "pageNum": 1, "pageSize": 10, "total": 1, "list": [{ "id": 1, "groupName": "第一组", "projectId": 1, "leaderId": 3, "description": "第一学习小组", "status": 1, "memberCount": 3 }] }, "timestamp": "2026-10-20 09:30:00" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["小组"],
+        "summary": "[M1] 新建小组",
+        "description": "负责人：B；M1 必须：是。",
+        "operationId": "createGroup",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/GroupVO" },
+              "example": { "groupName": "第一组", "projectId": 1, "description": "第一学习小组" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "创建成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Result" }, "example": { "code": 200, "message": "success", "data": { "id": 2 }, "timestamp": "2026-10-20 09:30:00" } } } }
+        }
+      }
+    },
+    "/groups/{id}": {
+      "get": {
+        "tags": ["小组"],
+        "summary": "[M1] 小组详情",
+        "description": "负责人：B；M1 必须：是。",
+        "operationId": "getGroup",
+        "parameters": [{ "$ref": "#/components/parameters/PathId" }],
+        "responses": {
+          "200": {
+            "description": "小组详情",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Result" },
+                "example": { "code": 200, "message": "success", "data": { "id": 1, "groupName": "第一组", "projectId": 1, "leaderId": 3, "description": "第一学习小组", "status": 1, "memberCount": 3 }, "timestamp": "2026-10-20 09:30:00" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["小组"],
+        "summary": "[M1] 解散小组",
+        "description": "负责人：B；M1 必须：是。",
+        "operationId": "deleteGroup",
+        "parameters": [{ "$ref": "#/components/parameters/PathId" }],
+        "responses": {
+          "200": { "description": "解散成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Result" }, "example": { "code": 200, "message": "success", "data": null, "timestamp": "2026-10-20 09:30:00" } } } }
+        }
+      }
+    },
+    "/groups/{id}/members": {
+      "post": {
+        "tags": ["小组"],
+        "summary": "[M1] 成员加入",
+        "description": "负责人：B；M1 必须：是。重复入组返回 1103。",
+        "operationId": "addGroupMembers",
+        "parameters": [{ "$ref": "#/components/parameters/PathId" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "properties": { "userIds": { "type": "array", "items": { "type": "integer", "format": "int64" } } }, "required": ["userIds"] },
+              "example": { "userIds": [3, 4] }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "加入成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Result" }, "example": { "code": 200, "message": "success", "data": null, "timestamp": "2026-10-20 09:30:00" } } } }
+        }
+      },
+      "delete": {
+        "tags": ["小组"],
+        "summary": "[M1] 成员移除",
+        "description": "负责人：B；M1 必须：是。DELETE 带 body：{\"userIds\":[3]}。",
+        "operationId": "removeGroupMembers",
+        "parameters": [{ "$ref": "#/components/parameters/PathId" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "properties": { "userIds": { "type": "array", "items": { "type": "integer", "format": "int64" } } }, "required": ["userIds"] },
+              "example": { "userIds": [4] }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "移除成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Result" }, "example": { "code": 200, "message": "success", "data": null, "timestamp": "2026-10-20 09:30:00" } } } }
+        }
+      }
+    },
+    "/groups/{id}/leader": {
+      "put": {
+        "tags": ["小组"],
+        "summary": "[M1] 设置组长",
+        "description": "负责人：B；M1 必须：是。目标用户须为本组成员。",
+        "operationId": "updateGroupLeader",
+        "parameters": [{ "$ref": "#/components/parameters/PathId" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "properties": { "userId": { "type": "integer", "format": "int64" } }, "required": ["userId"] },
+              "example": { "userId": 3 }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "设置成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Result" }, "example": { "code": 200, "message": "success", "data": null, "timestamp": "2026-10-20 09:30:00" } } } }
+        }
+      }
+    },
+    "/tasks": {
+      "get": {
+        "tags": ["任务"],
+        "summary": "[M1] 任务列表（多条件）",
+        "description": "负责人：C；M1 必须：是。状态六态：NOT_STARTED/IN_PROGRESS/REVIEWING/DONE/PAUSED/CANCELLED。",
+        "operationId": "listTasks",
+        "parameters": [
+          { "$ref": "#/components/parameters/PageNum" },
+          { "$ref": "#/components/parameters/PageSize" },
+          { "name": "projectId", "in": "query", "schema": { "type": "integer", "format": "int64" } },
+          { "name": "groupId", "in": "query", "schema": { "type": "integer", "format": "int64" } },
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["NOT_STARTED", "IN_PROGRESS", "REVIEWING", "DONE", "PAUSED", "CANCELLED"] } },
+          { "name": "assigneeId", "in": "query", "schema": { "type": "integer", "format": "int64" } },
+          { "name": "keyword", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "分页结果",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Result" },
+                "example": { "code": 200, "message": "success", "data": { "pageNum": 1, "pageSize": 10, "total": 1, "list": [{ "id": 1, "taskName": "需求分析", "projectId": 1, "groupId": 1, "description": "完成需求说明书", "status": "IN_PROGRESS", "priority": "HIGH", "assigneeId": 3, "planStartTime": "2026-10-01 09:00:00", "planEndTime": "2026-10-15 18:00:00" }] }, "timestamp": "2026-10-20 09:30:00" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["任务"],
+        "summary": "[M1] 新建任务",
+        "description": "负责人：C；M1 必须：是。",
+        "operationId": "createTask",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TaskVO" },
+              "example": { "taskName": "需求分析", "projectId": 1, "groupId": 1, "description": "完成需求说明书", "status": "NOT_STARTED", "priority": "HIGH", "assigneeId": 3, "planStartTime": "2026-10-01 09:00:00", "planEndTime": "2026-10-15 18:00:00" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "创建成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Result" }, "example": { "code": 200, "message": "success", "data": { "id": 4 }, "timestamp": "2026-10-20 09:30:00" } } } }
+        }
+      }
+    },
+    "/tasks/board": {
+      "get": {
+        "tags": ["任务"],
+        "summary": "[M1] 看板数据（按状态分组）",
+        "description": "负责人：C；M1 必须：是。非分页接口，返回六态分组数组，不套 PageResult。",
+        "operationId": "getTaskBoard",
+        "parameters": [
+          { "name": "projectId", "in": "query", "required": true, "schema": { "type": "integer", "format": "int64" } },
+          { "name": "groupId", "in": "query", "schema": { "type": "integer", "format": "int64" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "看板分组",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Result" },
+                "example": { "code": 200, "message": "success", "data": [{ "status": "NOT_STARTED", "taskCount": 1, "tasks": [{ "id": 3, "taskName": "联调", "assigneeId": 4 }] }, { "status": "IN_PROGRESS", "taskCount": 1, "tasks": [{ "id": 1, "taskName": "需求分析", "assigneeId": 3 }] }, { "status": "REVIEWING", "taskCount": 0, "tasks": [] }, { "status": "DONE", "taskCount": 0, "tasks": [] }, { "status": "PAUSED", "taskCount": 0, "tasks": [] }, { "status": "CANCELLED", "taskCount": 0, "tasks": [] }], "timestamp": "2026-10-20 09:30:00" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tasks/{id}": {
+      "get": {
+        "tags": ["任务"],
+        "summary": "[M1] 任务详情",
+        "description": "负责人：C；M1 必须：是。",
+        "operationId": "getTask",
+        "parameters": [{ "$ref": "#/components/parameters/PathId" }],
+        "responses": {
+          "200": {
+            "description": "任务详情",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Result" },
+                "example": { "code": 200, "message": "success", "data": { "id": 1, "taskName": "需求分析", "projectId": 1, "groupId": 1, "description": "完成需求说明书", "status": "IN_PROGRESS", "priority": "HIGH", "assigneeId": 3, "planStartTime": "2026-10-01 09:00:00", "planEndTime": "2026-10-15 18:00:00" }, "timestamp": "2026-10-20 09:30:00" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["任务"],
+        "summary": "[M1] 修改任务",
+        "description": "负责人：C；M1 必须：是。",
+        "operationId": "updateTask",
+        "parameters": [{ "$ref": "#/components/parameters/PathId" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TaskVO" },
+              "example": { "taskName": "需求分析（修订）", "projectId": 1, "groupId": 1, "description": "完成需求说明书 v1.1", "status": "IN_PROGRESS", "priority": "HIGH", "assigneeId": 3, "planStartTime": "2026-10-01 09:00:00", "planEndTime": "2026-10-18 18:00:00" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "修改成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Result" }, "example": { "code": 200, "message": "success", "data": null, "timestamp": "2026-10-20 09:30:00" } } } }
+        }
+      },
+      "delete": {
+        "tags": ["任务"],
+        "summary": "[M1] 删除任务",
+        "description": "负责人：C；M1 必须：是。",
+        "operationId": "deleteTask",
+        "parameters": [{ "$ref": "#/components/parameters/PathId" }],
+        "responses": {
+          "200": { "description": "删除成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Result" }, "example": { "code": 200, "message": "success", "data": null, "timestamp": "2026-10-20 09:30:00" } } } }
+        }
+      }
+    },
+    "/tasks/{id}/assignees": {
+      "put": {
+        "tags": ["任务"],
+        "summary": "[M1] 分配成员",
+        "description": "负责人：C；M1 必须：是。可关联多成员，primaryUserId 为主负责人，必须包含在 assigneeIds 中。",
+        "operationId": "updateTaskAssignees",
+        "parameters": [{ "$ref": "#/components/parameters/PathId" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "properties": { "assigneeIds": { "type": "array", "items": { "type": "integer", "format": "int64" } }, "primaryUserId": { "type": "integer", "format": "int64" } }, "required": ["assigneeIds", "primaryUserId"] },
+              "example": { "assigneeIds": [3, 4], "primaryUserId": 3 }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "分配成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Result" }, "example": { "code": 200, "message": "success", "data": null, "timestamp": "2026-10-20 09:30:00" } } } }
+        }
+      }
+    },
+    "/tasks/{id}/status": {
+      "put": {
+        "tags": ["任务"],
+        "summary": "[M1] 状态流转",
+        "description": "负责人：C；M1 必须：是。非法流转返回 1201；须写 task_status_log。",
+        "operationId": "updateTaskStatus",
+        "parameters": [{ "$ref": "#/components/parameters/PathId" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "properties": { "status": { "type": "string", "enum": ["NOT_STARTED", "IN_PROGRESS", "REVIEWING", "DONE", "PAUSED", "CANCELLED"] }, "remark": { "type": "string" } }, "required": ["status"] },
+              "example": { "status": "REVIEWING", "remark": "提交评审" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "流转成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Result" }, "example": { "code": 200, "message": "success", "data": null, "timestamp": "2026-10-20 09:30:00" } } } }
+        }
+      }
+    },
+    "/tasks/{id}/dependencies": {
+      "put": {
+        "tags": ["任务"],
+        "summary": "[M1] 设置前置任务",
+        "description": "负责人：C；M1 必须：是。前置任务未完成时流转返回 1202；禁止形成环。",
+        "operationId": "updateTaskDependencies",
+        "parameters": [{ "$ref": "#/components/parameters/PathId" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "properties": { "prerequisiteTaskIds": { "type": "array", "items": { "type": "integer", "format": "int64" } } }, "required": ["prerequisiteTaskIds"] },
+              "example": { "prerequisiteTaskIds": [1, 2] }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "设置成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Result" }, "example": { "code": 200, "message": "success", "data": null, "timestamp": "2026-10-20 09:30:00" } } } }
+        }
+      }
+    },
+    "/reports/project-progress": {
+      "get": {
+        "tags": ["总览"],
+        "summary": "[M1] 项目进度汇总",
+        "description": "负责人：D；M1 必须：是。数据源 v_project_progress；含完成率、状态统计、逾期、本周到期。",
+        "operationId": "getProjectProgress",
+        "parameters": [{ "name": "projectId", "in": "query", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": {
+          "200": {
+            "description": "进度汇总",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Result" },
+                "example": { "code": 200, "message": "success", "data": { "projectId": 1, "totalTasks": 10, "doneRate": 0.4, "statusCount": { "NOT_STARTED": 3, "IN_PROGRESS": 2, "REVIEWING": 1, "DONE": 4, "PAUSED": 0, "CANCELLED": 0 }, "overdueCount": 1, "dueThisWeekCount": 2, "lastUpdatedAt": "2026-10-20 09:30:00" }, "timestamp": "2026-10-20 09:30:00" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reports/member-workload": {
+      "get": {
+        "tags": ["总览"],
+        "summary": "[M1] 成员任务分布",
+        "description": "负责人：D；M1 必须：是。",
+        "operationId": "getMemberWorkload",
+        "parameters": [{ "name": "projectId", "in": "query", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": {
+          "200": {
+            "description": "成员负载",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Result" },
+                "example": { "code": 200, "message": "success", "data": [{ "userId": 3, "realName": "张三", "total": 4, "todo": 1, "doing": 2, "done": 1 }, { "userId": 4, "realName": "李四", "total": 3, "todo": 2, "doing": 0, "done": 1 }], "timestamp": "2026-10-20 09:30:00" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reports/due-this-week": {
+      "get": {
+        "tags": ["总览"],
+        "summary": "[M1] 本周截止任务",
+        "description": "负责人：D；M1 必须：是。",
+        "operationId": "getDueThisWeek",
+        "parameters": [{ "name": "projectId", "in": "query", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": {
+          "200": {
+            "description": "本周截止列表",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Result" },
+                "example": { "code": 200, "message": "success", "data": [{ "taskId": 2, "taskName": "接口开发", "assigneeId": 3, "planEndTime": "2026-10-24 18:00:00", "status": "IN_PROGRESS" }], "timestamp": "2026-10-20 09:30:00" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
+    },
+    "parameters": {
+      "PageNum": { "name": "pageNum", "in": "query", "schema": { "type": "integer", "default": 1, "minimum": 1 }, "description": "页码，默认 1" },
+      "PageSize": { "name": "pageSize", "in": "query", "schema": { "type": "integer", "default": 10, "minimum": 1, "maximum": 100 }, "description": "每页条数，默认 10，上限 100" },
+      "PathId": { "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" }, "description": "资源主键" }
+    },
+    "schemas": {
+      "Result": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "integer", "example": 200, "description": "200 成功；400 参数错；401 未登录；403 无权限；404 不存在；500 服务端错；业务码见号段" },
+          "message": { "type": "string", "example": "success" },
+          "data": { "type": "object", "nullable": true, "description": "业务数据；分页时为 PageResult；无返回时为 null" },
+          "timestamp": { "type": "string", "example": "2026-10-20 09:30:00", "description": "yyyy-MM-dd HH:mm:ss，Asia/Shanghai" }
+        },
+        "required": ["code", "message", "timestamp"]
+      },
+      "PageResult": {
+        "type": "object",
+        "properties": {
+          "pageNum": { "type": "integer", "example": 1 },
+          "pageSize": { "type": "integer", "example": 10 },
+          "total": { "type": "integer", "format": "int64", "example": 0 },
+          "list": { "type": "array", "items": { "type": "object" } }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "properties": {
+          "username": { "type": "string", "minLength": 4, "maxLength": 32 },
+          "password": { "type": "string", "minLength": 8, "maxLength": 64 },
+          "realName": { "type": "string" },
+          "studentNo": { "type": "string" }
+        },
+        "required": ["username", "password", "realName"]
+      },
+      "LoginRequest": {
+        "type": "object",
+        "properties": {
+          "username": { "type": "string" },
+          "password": { "type": "string" }
+        },
+        "required": ["username", "password"]
+      },
+      "UserVO": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "username": { "type": "string" },
+          "realName": { "type": "string" },
+          "roles": { "type": "array", "items": { "type": "string", "enum": ["STUDENT", "ASSISTANT", "ADMIN"] } }
+        }
+      },
+      "LoginVO": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "user": { "$ref": "#/components/schemas/UserVO" }
+        }
+      },
+      "CourseVO": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "courseName": { "type": "string" },
+          "courseCode": { "type": "string" },
+          "semester": { "type": "string", "example": "2026-2027-1" },
+          "teacherId": { "type": "integer", "format": "int64" },
+          "description": { "type": "string" },
+          "status": { "type": "integer", "enum": [0, 1], "description": "1 进行中，0 已结课" }
+        },
+        "required": ["courseName", "courseCode", "semester", "status"]
+      },
+      "ProjectVO": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "projectName": { "type": "string" },
+          "courseId": { "type": "integer", "format": "int64" },
+          "description": { "type": "string", "description": "项目目标/描述" },
+          "startDate": { "type": "string", "format": "date", "example": "2026-09-01" },
+          "endDate": { "type": "string", "format": "date", "example": "2026-12-31" },
+          "status": { "type": "string", "enum": ["NOT_STARTED", "IN_PROGRESS", "REVIEWING", "DONE"], "description": "CLOSED 为 v0.4 待定项" }
+        },
+        "required": ["projectName", "courseId", "startDate", "endDate", "status"]
+      },
+      "GroupVO": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "groupName": { "type": "string" },
+          "projectId": { "type": "integer", "format": "int64" },
+          "leaderId": { "type": "integer", "format": "int64" },
+          "description": { "type": "string" },
+          "status": { "type": "integer", "enum": [0, 1], "description": "1 正常，0 已解散" },
+          "memberCount": { "type": "integer" }
+        },
+        "required": ["groupName", "projectId"]
+      },
+      "TaskVO": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "taskName": { "type": "string" },
+          "projectId": { "type": "integer", "format": "int64" },
+          "groupId": { "type": "integer", "format": "int64" },
+          "description": { "type": "string" },
+          "status": { "type": "string", "enum": ["NOT_STARTED", "IN_PROGRESS", "REVIEWING", "DONE", "PAUSED", "CANCELLED"] },
+          "priority": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH"] },
+          "assigneeId": { "type": "integer", "format": "int64", "description": "主负责人（冗余字段）" },
+          "planStartTime": { "type": "string", "example": "2026-10-01 09:00:00" },
+          "planEndTime": { "type": "string", "example": "2026-10-15 18:00:00" }
+        },
+        "required": ["taskName", "projectId", "status"]
+      }
+    }
+  }
+}
